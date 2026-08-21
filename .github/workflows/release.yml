@@ -1,0 +1,143 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    name: linux-${{ matrix.arch }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Validate semantic tag
+        shell: bash
+        run: '[[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]'
+      - name: Test and build frontend
+        run: |
+          npm ci --prefix web
+          npm test --prefix web
+          npm run build --prefix web
+          rm -rf internal/server/webdist/*
+          cp -R web/dist/. internal/server/webdist/
+      - name: Test backend
+        run: go test ./cmd/... ./internal/...
+      - name: Build static binary
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.arch }} go build \
+            -trimpath \
+            -ldflags "-s -w -X github.com/steinyanaa/routeglass/internal/buildinfo.Version=$VERSION -X github.com/steinyanaa/routeglass/internal/buildinfo.Commit=$GITHUB_SHA -X github.com/steinyanaa/routeglass/internal/buildinfo.Date=$BUILD_DATE" \
+            -o package/routeglass ./cmd/routeglass
+          package/routeglass version | grep -F "routeglass $VERSION "
+          cp package/routeglass "routeglass_${VERSION}_linux_${{ matrix.arch }}"
+      - name: Package
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          cp LICENSE README.md SECURITY.md package/
+          mkdir -p package/install package/packaging/systemd package/docs
+          cp install/*.sh package/install/
+          cp packaging/systemd/* package/packaging/systemd/
+          cp docs/*.md package/docs/
+          tar --sort=name --owner=0 --group=0 --numeric-owner \
+            --mtime="@$(git show -s --format=%ct HEAD)" \
+            -C package -cf "routeglass_${VERSION}_linux_${{ matrix.arch }}.tar" .
+          gzip -n "routeglass_${VERSION}_linux_${{ matrix.arch }}.tar"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: routeglass-linux-${{ matrix.arch }}
+          path: |
+            routeglass_*.tar.gz
+            routeglass_v*_linux_${{ matrix.arch }}
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: routeglass-linux-*
+          path: dist
+          merge-multiple: true
+      - name: Checksums and release manifest
+        env:
+          VERSION: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        working-directory: dist
+        run: |
+          sha256sum routeglass_*.tar.gz > SHA256SUMS
+          amd64_file="routeglass_${VERSION}_linux_amd64.tar.gz"
+          arm64_file="routeglass_${VERSION}_linux_arm64.tar.gz"
+          amd64_bin="routeglass_${VERSION}_linux_amd64"
+          arm64_bin="routeglass_${VERSION}_linux_arm64"
+          amd64_sha=$(sha256sum "$amd64_file" | cut -d' ' -f1)
+          arm64_sha=$(sha256sum "$arm64_file" | cut -d' ' -f1)
+          amd64_size=$(stat -c%s "$amd64_file")
+          arm64_size=$(stat -c%s "$arm64_file")
+          amd64_bin_sha=$(sha256sum "$amd64_bin" | cut -d' ' -f1)
+          arm64_bin_sha=$(sha256sum "$arm64_bin" | cut -d' ' -f1)
+          amd64_bin_size=$(stat -c%s "$amd64_bin")
+          arm64_bin_size=$(stat -c%s "$arm64_bin")
+          base="https://github.com/${REPOSITORY}/releases/download/${VERSION}"
+          cat > release.json <<EOF
+          {
+            "schema_version": 1,
+            "version": "${VERSION}",
+            "assets": {
+              "linux-amd64": {"url": "${base}/${amd64_file}", "sha256": "${amd64_sha}", "size": ${amd64_size}},
+              "linux-arm64": {"url": "${base}/${arm64_file}", "sha256": "${arm64_sha}", "size": ${arm64_size}},
+              "server-linux-amd64": {"url": "${base}/${amd64_bin}", "sha256": "${amd64_bin_sha}", "size": ${amd64_bin_size}},
+              "agent-linux-amd64": {"url": "${base}/${amd64_bin}", "sha256": "${amd64_bin_sha}", "size": ${amd64_bin_size}},
+              "server-linux-arm64": {"url": "${base}/${arm64_bin}", "sha256": "${arm64_bin_sha}", "size": ${arm64_bin_size}},
+              "agent-linux-arm64": {"url": "${base}/${arm64_bin}", "sha256": "${arm64_bin_sha}", "size": ${arm64_bin_size}}
+            }
+          }
+          EOF
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: dist
+          format: spdx-json
+          output-file: dist/routeglass_${{ github.ref_name }}.spdx.json
+          upload-artifact: false
+      - name: Attest release artifacts
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            dist/routeglass_v*_linux_*
+            dist/SHA256SUMS
+            dist/release.json
+            dist/routeglass_*.spdx.json
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes --title "RouteGlass $GITHUB_REF_NAME"

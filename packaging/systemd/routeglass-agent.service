@@ -1,0 +1,49 @@
+[Unit]
+Description=RouteGlass node agent
+Documentation=https://github.com/steinyanaa/routeglass
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=routeglass-agent
+Group=routeglass-agent
+WorkingDirectory=/var/lib/routeglass-agent
+ExecStart=/usr/local/bin/routeglass agent --config /etc/routeglass-agent/agent.json
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+KillSignal=SIGTERM
+UMask=0077
+
+StateDirectory=routeglass-agent
+ConfigurationDirectory=routeglass-agent
+# The Agent atomically replaces its bootstrap join token with its persistent
+# identity in agent.json after enrollment.
+ReadWritePaths=/var/lib/routeglass-agent /etc/routeglass-agent
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# Raw sockets are needed for ICMP/traceroute. Port 9443 is unprivileged.
+CapabilityBoundingSet=CAP_NET_RAW
+AmbientCapabilities=CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target

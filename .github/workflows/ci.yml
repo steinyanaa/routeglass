@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Frontend dependencies
+        run: npm ci --prefix web
+      - name: Frontend lint and typecheck
+        run: |
+          npm run lint --prefix web
+          npm run typecheck --prefix web
+      - name: Frontend tests and production build
+        run: |
+          npm test --prefix web
+          npm run build --prefix web
+          rm -rf internal/server/webdist/*
+          cp -R web/dist/. internal/server/webdist/
+      - name: Go formatting
+        run: test -z "$(gofmt -l cmd internal)"
+      - name: Go vet and tests
+        run: |
+          go vet ./cmd/... ./internal/...
+          go test -race -coverprofile=coverage.out ./cmd/... ./internal/...
+      - name: Production binary smoke test
+        run: |
+          CGO_ENABLED=0 go build -trimpath -o routeglass ./cmd/routeglass
+          ./routeglass version
+
+  packaging:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install shell tooling
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends shellcheck
+      - name: Shell lint
+        run: shellcheck -S error install/*.sh install/tests/*.sh
+      - name: Installer tests
+        run: bash install/tests/run.sh
+      - name: Verify systemd units
+        run: systemd-analyze verify packaging/systemd/routeglass.service packaging/systemd/routeglass-agent.service
