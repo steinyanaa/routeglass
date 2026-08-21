@@ -62,4 +62,6 @@ jobs:
       - name: Installer tests
         run: bash install/tests/run.sh
       - name: Verify systemd units
-        run: systemd-analyze verify packaging/systemd/routeglass.service packaging/systemd/routeglass-agent.service
+        run: |
+          sudo install -m 0755 /bin/true /usr/local/bin/routeglass
+          systemd-analyze verify packaging/systemd/routeglass.service packaging/systemd/routeglass-agent.service
