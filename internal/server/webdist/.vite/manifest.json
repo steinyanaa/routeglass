@@ -1,0 +1,49 @@
+{
+  "_globe-BI1gU2OE.js": {
+    "file": "assets/globe-BI1gU2OE.js",
+    "name": "globe",
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js"
+    ]
+  },
+  "_i18n-CO3AJEbu.js": {
+    "file": "assets/i18n-CO3AJEbu.js",
+    "name": "i18n",
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_globe-BI1gU2OE.js"
+    ]
+  },
+  "_rolldown-runtime-hePW80VL.js": {
+    "file": "assets/rolldown-runtime-hePW80VL.js",
+    "name": "rolldown-runtime"
+  },
+  "index.html": {
+    "file": "assets/index-DN3PtxSd.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_globe-BI1gU2OE.js",
+      "_i18n-CO3AJEbu.js"
+    ],
+    "dynamicImports": [
+      "src/globe-route.tsx"
+    ],
+    "css": [
+      "assets/index-BLEiuqeh.css"
+    ]
+  },
+  "src/globe-route.tsx": {
+    "file": "assets/globe-route-D2Ac5fA6.js",
+    "name": "globe-route",
+    "src": "src/globe-route.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_globe-BI1gU2OE.js",
+      "index.html"
+    ]
+  }
+}

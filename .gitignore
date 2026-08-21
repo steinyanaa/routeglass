@@ -1,0 +1,37 @@
+# Go
+/routeglass
+/routeglass.exe
+/routeglass.exe~
+/routeglass-linux-amd64
+/routeglass-linux-arm64
+*.test
+*.out
+/coverage/
+/.cache/
+
+# Frontend
+/web/node_modules/
+/web/dist/
+/web/coverage/
+*.tsbuildinfo
+
+# Runtime and local configuration
+*.db
+*.db-shm
+*.db-wal
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+/data/
+/tmp/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Release output
+/dist/
