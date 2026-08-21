@@ -50,4 +50,3 @@ Logs redact all of them. A join token is exchanged once and removed from Agent c
 - GitHub Releases include build-provenance attestations. Verify them with `gh attestation verify --repo steinyanaa/routeglass ARTIFACT` when the GitHub CLI is available.
 - Existing 80/443 listeners and proxy configurations are inventory inputs. Changes require an explicit proxy flag, live in marked snippets, and pass native syntax validation before reload.
 - Firewall teardown removes only rules recorded as created by RouteGlass.
-

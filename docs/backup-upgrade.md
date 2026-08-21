@@ -50,4 +50,3 @@ gh attestation verify --repo steinyanaa/routeglass routeglass_VERSION_linux_amd6
 ```
 
 SHA256 detects incomplete or corrupted downloads. GitHub attestation additionally ties an artifact to the repository workflow and commit that built it.
-

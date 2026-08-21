@@ -88,4 +88,3 @@ curl -v https://NODE_IP:9443/v1/probe
 ```
 
 The unauthenticated probe request should receive 403 after a valid TLS handshake.
-

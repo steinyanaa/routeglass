@@ -39,4 +39,3 @@ ARI determines the preferred renewal time. The fallback starts with roughly 72 h
 Admin status includes identifier, challenge, issuer, validity, renewal time, last success/error, and endpoint readiness. An expired or untrusted certificate removes that address from speedtest selection while Agent heartbeat remains online.
 
 Persist `/var/lib/routeglass-agent` across reinstall. Deleting ACME account/order state during troubleshooting can consume issuance limits; use the Let's Encrypt staging directory for repeated validation tests.
-
