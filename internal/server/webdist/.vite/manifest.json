@@ -19,7 +19,7 @@
     "name": "rolldown-runtime"
   },
   "index.html": {
-    "file": "assets/index-DN3PtxSd.js",
+    "file": "assets/index-Dmgth0HW.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -36,7 +36,7 @@
     ]
   },
   "src/globe-route.tsx": {
-    "file": "assets/globe-route-D2Ac5fA6.js",
+    "file": "assets/globe-route-BqQpMd80.js",
     "name": "globe-route",
     "src": "src/globe-route.tsx",
     "isDynamicEntry": true,
