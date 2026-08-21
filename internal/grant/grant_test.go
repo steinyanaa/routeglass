@@ -18,7 +18,11 @@ func TestGrantRoundTripAndTamper(t *testing.T) {
 	if e != nil || c.NodeID != "n" || !HasScope(c, "probe") {
 		t.Fatal(c, e)
 	}
-	tok = tok[:len(tok)-1] + "A"
+	replacement := "A"
+	if tok[len(tok)-1] == 'A' {
+		replacement = "B"
+	}
+	tok = tok[:len(tok)-1] + replacement
 	if _, e = Verify(pub, tok, now); e == nil {
 		t.Fatal("tamper accepted")
 	}

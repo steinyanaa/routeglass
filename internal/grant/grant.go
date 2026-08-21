@@ -56,7 +56,10 @@ func Verify(public ed25519.PublicKey, token string, now time.Time) (Claims, erro
 	}
 	b, e1 := base64.RawURLEncoding.DecodeString(p[1])
 	sig, e2 := base64.RawURLEncoding.DecodeString(p[2])
-	if e1 != nil || e2 != nil || !ed25519.Verify(public, []byte("rgtt1."+p[1]), sig) || json.Unmarshal(b, &c) != nil {
+	if e1 != nil || e2 != nil ||
+		base64.RawURLEncoding.EncodeToString(b) != p[1] ||
+		base64.RawURLEncoding.EncodeToString(sig) != p[2] ||
+		!ed25519.Verify(public, []byte("rgtt1."+p[1]), sig) || json.Unmarshal(b, &c) != nil {
 		return c, ErrInvalid
 	}
 	if c.Version != 1 || c.NotBefore > now.Unix() || c.Expires < now.Unix() || c.Nonce == "" {
